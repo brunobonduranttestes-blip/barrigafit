@@ -18,6 +18,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { markDayComplete, addProgressEntry, isDayComplete } from "@/lib/storage";
 import { PROGRAMS, LIBRARY_CLASSES, type Exercise, type WorkoutDay } from "@/lib/mock-data";
 import { useColors } from "@/hooks/use-colors";
+import { ExerciseAnimation, getAnimationType } from "@/components/ui/exercise-animation";
 
 export default function AulaScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -324,23 +325,22 @@ export default function AulaScreen() {
       >
         {currentExercise && (
           <>
-            {/* Exercise Visual */}
-            <LinearGradient
-              colors={[currentExercise.thumbnailColor, currentExercise.thumbnailColor + "88"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.exerciseVisual}
-            >
-              <IconSymbol name="figure.run" size={64} color="rgba(255,255,255,0.9)" />
+            {/* Exercise Visual - Animated */}
+            <View style={[styles.exerciseVisual, { backgroundColor: currentExercise.thumbnailColor + "18" }]}>
+              <ExerciseAnimation
+                type={getAnimationType(currentExercise.name)}
+                color={currentExercise.thumbnailColor}
+                size={220}
+              />
 
               {/* Timer Circle */}
               <View style={styles.exerciseTimerContainer}>
-                <View style={styles.exerciseTimerCircle}>
-                  <Text style={styles.exerciseTimerValue}>{exerciseTimer}</Text>
+                <View style={[styles.exerciseTimerCircle, { borderColor: currentExercise.thumbnailColor + "66" }]}>
+                  <Text style={[styles.exerciseTimerValue, { color: currentExercise.thumbnailColor }]}>{exerciseTimer}</Text>
                   <Text style={styles.exerciseTimerLabel}>seg</Text>
                 </View>
               </View>
-            </LinearGradient>
+            </View>
 
             {/* Exercise Info */}
             <View style={styles.exerciseInfo}>
@@ -662,29 +662,34 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   exerciseVisual: {
-    height: 220,
+    height: 260,
     justifyContent: "center",
     alignItems: "center",
     position: "relative",
+    borderRadius: 20,
+    marginHorizontal: 16,
+    marginTop: 8,
+    overflow: "hidden",
   },
   exerciseTimerContainer: {
     position: "absolute",
-    bottom: 16,
-    right: 16,
+    bottom: 14,
+    right: 14,
   },
   exerciseTimerCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(0,0,0,0.65)",
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 2,
   },
   exerciseTimerValue: {
     color: "#fff",
-    fontSize: 18,
-    fontWeight: "800",
-    lineHeight: 22,
+    fontSize: 20,
+    fontWeight: "900",
+    lineHeight: 24,
   },
   exerciseTimerLabel: {
     color: "rgba(255,255,255,0.7)",

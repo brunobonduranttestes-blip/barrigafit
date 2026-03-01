@@ -32,3 +32,12 @@
 - [x] Copiar logo para todos os assets (icon, splash, favicon, android)
 - [x] Configurar splash screen com fundo preto
 - [x] Atualizar app.config.ts com nome e logo URL
+
+## Animações de Exercícios
+- [x] Decidir abordagem: reanimated + SVG (sem dependências externas)
+- [x] Criar componente ExerciseAnimation com 10 tipos de animação SVG
+- [x] Implementar getAnimationType para mapear exercícios a animações
+- [x] Integrar animações na tela de Aula (substituir placeholder LinearGradient)
+- [x] Integrar animações nos cards da Biblioteca (ClassCard)
+- [x] Mapear cada exercício a uma animação correspondente
+- [x] Testes passando (41 testes)

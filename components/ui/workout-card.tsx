@@ -1,6 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, Text, View, StyleSheet } from "react-native";
 import { IconSymbol } from "./icon-symbol";
+import { ExerciseAnimation, getAnimationType } from "./exercise-animation";
 import { useColors } from "@/hooks/use-colors";
 import type { LibraryClass, Program } from "@/lib/mock-data";
 
@@ -100,20 +101,20 @@ export function ClassCard({ item, onPress, isFavorite, onToggleFavorite }: Class
         { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.85 : 1 },
       ]}
     >
-      <LinearGradient
-        colors={[item.thumbnailColor, item.thumbnailColor + "99"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.classThumbnail}
-      >
+      <View style={[styles.classThumbnail, { backgroundColor: item.thumbnailColor + "18" }]}>
+        <ExerciseAnimation
+          type={getAnimationType(item.exercises[0]?.name ?? "")}
+          color={item.thumbnailColor}
+          size={100}
+        />
         <View style={styles.playButton}>
-          <IconSymbol name="play.fill" size={20} color="#fff" />
+          <IconSymbol name="play.fill" size={16} color="#fff" />
         </View>
         <View style={styles.durationBadge}>
           <IconSymbol name="clock.fill" size={10} color="#fff" />
           <Text style={styles.durationText}>{item.duration} min</Text>
         </View>
-      </LinearGradient>
+      </View>
 
       <View style={[styles.classCardBody, { backgroundColor: colors.card }]}>
         <Text style={[styles.classTitle, { color: colors.foreground }]} numberOfLines={2}>
@@ -255,12 +256,17 @@ const styles = StyleSheet.create({
     height: 110,
     justifyContent: "center",
     alignItems: "center",
+    position: "relative",
+    overflow: "hidden",
   },
   playButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    position: "absolute",
+    bottom: 8,
+    left: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(0,0,0,0.55)",
     justifyContent: "center",
     alignItems: "center",
   },
