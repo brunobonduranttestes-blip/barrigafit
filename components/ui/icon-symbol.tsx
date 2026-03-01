@@ -9,21 +9,92 @@ type IconMapping = Record<SymbolViewProps["name"], ComponentProps<typeof Materia
 type IconSymbolName = keyof typeof MAPPING;
 
 /**
- * Add your SF Symbols to Material Icons mappings here.
- * - see Material Icons in the [Icons Directory](https://icons.expo.fyi).
- * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
+ * SF Symbols to Material Icons mappings for BARRIGAFIT
  */
 const MAPPING = {
+  // Navigation
   "house.fill": "home",
+  "list.bullet": "format-list-bulleted",
+  "books.vertical.fill": "library-books",
+  "chart.bar.fill": "bar-chart",
+  "gearshape.fill": "settings",
+  // Actions
   "paperplane.fill": "send",
   "chevron.left.forwardslash.chevron.right": "code",
   "chevron.right": "chevron-right",
+  "chevron.left": "chevron-left",
+  "chevron.down": "expand-more",
+  "chevron.up": "expand-less",
+  "xmark": "close",
+  "xmark.circle.fill": "cancel",
+  "checkmark": "check",
+  "checkmark.circle.fill": "check-circle",
+  "checkmark.circle": "radio-button-unchecked",
+  "plus": "add",
+  "plus.circle.fill": "add-circle",
+  "minus": "remove",
+  // Media
+  "play.fill": "play-arrow",
+  "pause.fill": "pause",
+  "stop.fill": "stop",
+  "backward.fill": "skip-previous",
+  "forward.fill": "skip-next",
+  "speaker.wave.2.fill": "volume-up",
+  "speaker.slash.fill": "volume-off",
+  // Fitness
+  "figure.walk": "directions-walk",
+  "figure.run": "directions-run",
+  "flame.fill": "local-fire-department",
+  "heart.fill": "favorite",
+  "heart": "favorite-border",
+  "bolt.fill": "bolt",
+  "timer": "timer",
+  "stopwatch.fill": "timer",
+  "trophy.fill": "emoji-events",
+  "star.fill": "star",
+  "star": "star-border",
+  // User
+  "person.fill": "person",
+  "person.circle.fill": "account-circle",
+  "bell.fill": "notifications",
+  "bell": "notifications-none",
+  // Misc
+  "magnifyingglass": "search",
+  "slider.horizontal.3": "tune",
+  "arrow.clockwise": "refresh",
+  "arrow.up.right": "open-in-new",
+  "lock.fill": "lock",
+  "cloud.fill": "cloud",
+  "icloud.fill": "backup",
+  "info.circle.fill": "info",
+  "exclamationmark.triangle.fill": "warning",
+  "calendar": "calendar-today",
+  "clock.fill": "schedule",
+  "dumbbell.fill": "fitness-center",
+  "sparkles": "auto-awesome",
+  "wand.and.stars": "auto-fix-high",
+  "arrow.right": "arrow-forward",
+  "arrow.left": "arrow-back",
+  "rectangle.stack.fill": "layers",
+  "tag.fill": "label",
+  "target": "gps-fixed",
+  "trash.fill": "delete",
+  "bell.badge": "add-alert",
+  "photo": "photo",
+  "pencil": "edit",
+  "square.and.arrow.up": "share",
+  "person.badge.plus": "person-add",
+  "questionmark.circle.fill": "help",
+  "doc.text.fill": "description",
+  "creditcard.fill": "credit-card",
+  "shield.fill": "security",
+  "hand.thumbsup.fill": "thumb-up",
+  "figure.cooldown": "self-improvement",
+  "figure.strengthtraining.traditional": "fitness-center",
 } as IconMapping;
 
 /**
  * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.
- * This ensures a consistent look across platforms, and optimal resource usage.
- * Icon `name`s are based on SF Symbols and require manual mapping to Material Icons.
  */
 export function IconSymbol({
   name,
