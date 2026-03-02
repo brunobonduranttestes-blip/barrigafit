@@ -19,6 +19,8 @@ import { markDayComplete, addProgressEntry, isDayComplete } from "@/lib/storage"
 import { PROGRAMS, LIBRARY_CLASSES, type Exercise, type WorkoutDay } from "@/lib/mock-data";
 import { useColors } from "@/hooks/use-colors";
 import { ExerciseAnimation, getAnimationType } from "@/components/ui/exercise-animation";
+import { CountdownOverlay } from "@/components/ui/countdown-overlay";
+import { Play, Pause } from "lucide-react-native";
 
 export default function AulaScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -29,10 +31,12 @@ export default function AulaScreen() {
   const [programId, setProgramId] = useState<string | null>(null);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [isStarted, setIsStarted] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [alreadyDone, setAlreadyDone] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [exerciseTimer, setExerciseTimer] = useState(0);
+  const [showCountdown, setShowCountdown] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const exerciseTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -77,6 +81,7 @@ export default function AulaScreen() {
 
   const startWorkout = () => {
     setIsStarted(true);
+    setIsPaused(false);
     setExerciseTimer(workout?.exercises[0]?.duration || 30);
 
     timerRef.current = setInterval(() => {
@@ -84,6 +89,20 @@ export default function AulaScreen() {
     }, 1000);
 
     startExerciseTimer(workout?.exercises[0]?.duration || 30);
+  };
+
+  const togglePause = () => {
+    if (isPaused) {
+      setIsPaused(false);
+      timerRef.current = setInterval(() => {
+        setElapsedSeconds((s) => s + 1);
+      }, 1000);
+      startExerciseTimer(exerciseTimer);
+    } else {
+      setIsPaused(true);
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (exerciseTimerRef.current) clearInterval(exerciseTimerRef.current);
+    }
   };
 
   const startExerciseTimer = (duration: number) => {
@@ -108,8 +127,12 @@ export default function AulaScreen() {
     if (nextIndex >= workout.exercises.length) {
       handleComplete();
     } else {
-      setCurrentExerciseIndex(nextIndex);
-      startExerciseTimer(workout.exercises[nextIndex].duration);
+      setShowCountdown(true);
+      setTimeout(() => {
+        setCurrentExerciseIndex(nextIndex);
+        startExerciseTimer(workout.exercises[nextIndex].duration);
+        setShowCountdown(false);
+      }, 4000);
     }
   };
 

@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,10 @@ import {
   Alert,
   Switch,
   Platform,
+  SafeAreaView,
+  TextInput,
+  Modal,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect } from "expo-router";
@@ -19,30 +23,28 @@ import {
   getActiveProgramId,
   getCompletedDays,
   resetAllData,
+  saveUserProfile,
   type UserProfile,
 } from "@/lib/storage";
 import { PROGRAMS } from "@/lib/mock-data";
 import { useColors } from "@/hooks/use-colors";
-
-const GOAL_LABELS: Record<string, string> = {
-  weight_loss: "Perda de Peso",
-  toning: "Tonificação",
-  posture: "Postura",
-  energy: "Mais Energia",
-};
-
-const LEVEL_LABELS: Record<string, string> = {
-  beginner: "Iniciante",
-  intermediate: "Intermediário",
-  advanced: "Avançado",
-};
+import { useAuth } from "@/lib/auth-context";
+import { isNotificationsEnabled, setNotificationsEnabled, getNotificationTime, setNotificationTime } from "@/lib/notifications";
+import { Settings, Bell, User, LogOut, Zap, Clock, Shield } from "lucide-react-native";
 
 export default function ConfiguracoesScreen() {
   const colors = useColors();
+  const { user, logout, updateProfile } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [activeProgram, setActiveProgram] = useState<typeof PROGRAMS[0] | null>(null);
   const [completedDays, setCompletedDays] = useState<string[]>([]);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabledLocal] = useState(false);
+  const [notificationTime, setNotificationTimeLocal] = useState("08:00");
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editGoal, setEditGoal] = useState("");
+  const [editLevel, setEditLevel] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -51,435 +53,430 @@ export default function ConfiguracoesScreen() {
   );
 
   const loadData = async () => {
-    const prof = await getUserProfile();
-    const programId = await getActiveProgramId();
-    const days = await getCompletedDays();
-    setProfile(prof);
-    setCompletedDays(days);
-    const prog = PROGRAMS.find((p) => p.id === programId);
-    setActiveProgram(prog || null);
+    try {
+      const prof = await getUserProfile();
+      const programId = await getActiveProgramId();
+      const days = await getCompletedDays();
+      const notifEnabled = await isNotificationsEnabled();
+      const notifTime = await getNotificationTime();
+
+      setProfile(prof);
+      setCompletedDays(days);
+      setNotificationsEnabledLocal(notifEnabled);
+      setNotificationTimeLocal(notifTime);
+
+      const prog = PROGRAMS.find((p) => p.id === programId);
+      setActiveProgram(prog || null);
+    } catch (error) {
+      console.error("Failed to load config data:", error);
+    }
   };
 
-  const handleReset = () => {
-    Alert.alert(
-      "Resetar Dados",
-      "Tem certeza que deseja apagar todo o seu progresso? Esta ação não pode ser desfeita.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Resetar",
-          style: "destructive",
-          onPress: async () => {
-            await resetAllData();
-            if (Platform.OS !== "web") {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            }
-            router.replace("/");
-          },
+  const handleLogout = () => {
+    Alert.alert("Sair", "Deseja sair da sua conta?", [
+      { text: "Cancelar" },
+      {
+        text: "Sair",
+        onPress: async () => {
+          await logout();
+          router.replace("/login");
         },
-      ]
-    );
+        style: "destructive",
+      },
+    ]);
   };
 
-  const handleRestartOnboarding = async () => {
-    await resetAllData();
-    router.replace("/onboarding");
+  const handleNotificationToggle = async (value: boolean) => {
+    try {
+      setNotificationsEnabledLocal(value);
+      await setNotificationsEnabled(value);
+      if (value) {
+        Alert.alert("Sucesso", "Notificações ativadas!");
+      }
+    } catch (error) {
+      Alert.alert("Erro", "Falha ao configurar notificações");
+    }
   };
 
-  const progress = activeProgram
-    ? Math.round((completedDays.length / activeProgram.duration) * 100)
-    : 0;
+  const handleSaveProfile = async () => {
+    if (!editName.trim()) {
+      Alert.alert("Erro", "Nome não pode estar vazio");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const updated: UserProfile = {
+        name: editName,
+        goal: editGoal,
+        level: editLevel,
+        availableTime: profile?.availableTime || "",
+        startDate: profile?.startDate || new Date().toISOString(),
+      };
+
+      await saveUserProfile(updated);
+      await updateProfile({
+        nome: editName,
+        objetivo: editGoal,
+        nivel: editLevel,
+      });
+
+      setProfile(updated);
+      setEditingProfile(false);
+      Alert.alert("Sucesso", "Perfil atualizado!");
+    } catch (error) {
+      Alert.alert("Erro", "Falha ao salvar perfil");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startEditProfile = () => {
+    setEditName(profile?.name || user?.nome || "");
+    setEditGoal(profile?.goal || user?.objetivo || "emagrecer");
+    setEditLevel(profile?.level || user?.nivel || "iniciante");
+    setEditingProfile(true);
+  };
 
   return (
-    <ScreenContainer containerClassName="bg-background">
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <ScrollView contentContainerStyle={{ paddingVertical: 16 }}>
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.foreground }]}>Perfil</Text>
+        <View style={{ paddingHorizontal: 16, marginBottom: 24 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View
+              style={{
+                width: 60,
+                height: 60,
+                borderRadius: 30,
+                backgroundColor: colors.surface,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <User size={32} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 18, fontWeight: "bold", color: colors.text }}>
+                {user?.nome || "Usuária BARRIGAFIT"}
+              </Text>
+              <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>
+                {user?.is_admin ? "ADMIN" : "Membro"}
+              </Text>
+            </View>
+          </View>
         </View>
 
-        {/* Profile Card */}
-        <LinearGradient
-          colors={["#E91E8C", "#C026D3"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.profileCard}
-        >
-          <View style={styles.profileAvatar}>
-            <IconSymbol name="person.fill" size={32} color="#E91E8C" />
-          </View>
-          <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>
-              {profile?.name || "Usuário BARRIGAFIT"}
-            </Text>
-            <Text style={styles.profileGoal}>
-              {profile?.goal ? GOAL_LABELS[profile.goal] || profile.goal : "Meta não definida"}
-            </Text>
-          </View>
-          <View style={styles.profileStats}>
-            <View style={styles.profileStat}>
-              <Text style={styles.profileStatValue}>{completedDays.length}</Text>
-              <Text style={styles.profileStatLabel}>Treinos</Text>
-            </View>
-            <View style={styles.profileStatDivider} />
-            <View style={styles.profileStat}>
-              <Text style={styles.profileStatValue}>{progress}%</Text>
-              <Text style={styles.profileStatLabel}>Progresso</Text>
-            </View>
-          </View>
-        </LinearGradient>
-
-        {/* Current Program */}
-        {activeProgram && (
-          <View style={[styles.section, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
-            <Text style={[styles.sectionLabel, { color: colors.muted }]}>PROGRAMA ATIVO</Text>
-            <Pressable
-              onPress={() => router.push({ pathname: "/programa/[id]", params: { id: activeProgram.id } })}
-              style={({ pressed }) => [styles.programRow, { opacity: pressed ? 0.7 : 1 }]}
-            >
-              <View style={[styles.programDot, { backgroundColor: activeProgram.color }]} />
-              <View style={styles.programInfo}>
-                <Text style={[styles.programTitle, { color: colors.foreground }]}>
-                  {activeProgram.title}
-                </Text>
-                <Text style={[styles.programMeta, { color: colors.muted }]}>
-                  {completedDays.length} / {activeProgram.duration} dias
-                </Text>
-              </View>
-              <IconSymbol name="chevron.right" size={16} color={colors.muted} />
-            </Pressable>
-          </View>
-        )}
-
-        {/* Profile Details */}
-        {profile && (
-          <View style={[styles.section, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
-            <Text style={[styles.sectionLabel, { color: colors.muted }]}>SEUS DADOS</Text>
-            <SettingRow
-              icon="target"
-              label="Objetivo"
-              value={GOAL_LABELS[profile.goal] || profile.goal}
-              colors={colors}
-            />
-            <SettingRow
-              icon="bolt.fill"
-              label="Nível"
-              value={LEVEL_LABELS[profile.level] || profile.level}
-              colors={colors}
-            />
-            <SettingRow
-              icon="clock.fill"
-              label="Tempo disponível"
-              value={profile.availableTime}
-              colors={colors}
-              isLast
-            />
-          </View>
-        )}
-
-        {/* Preferences */}
-        <View style={[styles.section, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
-          <Text style={[styles.sectionLabel, { color: colors.muted }]}>PREFERÊNCIAS</Text>
-          <View style={styles.switchRow}>
-            <View style={styles.switchLeft}>
-              <View style={[styles.switchIcon, { backgroundColor: colors.border }]}>
-                <IconSymbol name="bell.fill" size={16} color={colors.primary} />
-              </View>
-              <Text style={[styles.switchLabel, { color: colors.foreground }]}>
-                Lembretes de treino
+        {/* Editar Perfil */}
+        <SettingSection title="Perfil" colors={colors}>
+          <Pressable
+            onPress={startEditProfile}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 12,
+              padding: 12,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <View>
+              <Text style={{ color: colors.text, fontWeight: "600", fontSize: 14 }}>Editar Perfil</Text>
+              <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>
+                Nome, objetivo e nível
               </Text>
+            </View>
+            <IconSymbol name="chevron.right" size={24} color={colors.primary} />
+          </Pressable>
+        </SettingSection>
+
+        {/* Admin Panel */}
+        {user?.is_admin && (
+          <SettingSection title="Administração" colors={colors}>
+            <Pressable
+              onPress={() => router.navigate("/admin")}
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 12,
+                padding: 12,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                <Shield size={20} color="#E91E8C" />
+                <View>
+                  <Text style={{ color: colors.text, fontWeight: "600", fontSize: 14 }}>Painel Admin</Text>
+                  <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>Gerenciar usuárias e conteúdo</Text>
+                </View>
+              </View>
+              <IconSymbol name="chevron.right" size={24} color={colors.primary} />
+            </Pressable>
+          </SettingSection>
+        )}
+
+        {/* Notificações */}
+        <SettingSection title="Notificações" colors={colors}>
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 12,
+              padding: 12,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 8,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <Bell size={20} color={colors.primary} />
+              <Text style={{ color: colors.text, fontWeight: "600", fontSize: 14 }}>Lembretes Diários</Text>
             </View>
             <Switch
               value={notificationsEnabled}
-              onValueChange={(v) => {
-                if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setNotificationsEnabled(v);
-              }}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor="#fff"
+              onValueChange={handleNotificationToggle}
+              trackColor={{ false: colors.border, true: "#E91E8C" }}
             />
           </View>
-        </View>
 
-        {/* Programs */}
-        <View style={[styles.section, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
-          <Text style={[styles.sectionLabel, { color: colors.muted }]}>PROGRAMAS</Text>
-          <Pressable
-            onPress={() => router.push("/(tabs)/programas")}
-            style={({ pressed }) => [styles.actionRow, { opacity: pressed ? 0.7 : 1 }]}
-          >
-            <View style={[styles.actionIcon, { backgroundColor: colors.border }]}>
-              <IconSymbol name="rectangle.stack.fill" size={16} color={colors.primary} />
+          {notificationsEnabled && (
+            <View
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 12,
+                padding: 12,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <Clock size={20} color={colors.primary} />
+              <Text style={{ color: colors.text, fontWeight: "600", fontSize: 14 }}>Horário:</Text>
+              <Text style={{ color: colors.primary, fontWeight: "bold", fontSize: 14, marginLeft: "auto" }}>
+                {notificationTime}
+              </Text>
             </View>
-            <Text style={[styles.actionLabel, { color: colors.foreground }]}>
-              Ver todos os programas
-            </Text>
-            <IconSymbol name="chevron.right" size={16} color={colors.muted} />
-          </Pressable>
+          )}
+        </SettingSection>
+
+        {/* Meu Progresso */}
+        <SettingSection title="Progresso" colors={colors}>
           <Pressable
-            onPress={() => router.push("/descobrir")}
-            style={({ pressed }) => [styles.actionRow, { borderTopWidth: 0.5, borderTopColor: colors.border, opacity: pressed ? 0.7 : 1 }]}
+            onPress={() => router.navigate("/medidas")}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 12,
+              padding: 12,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
           >
-            <View style={[styles.actionIcon, { backgroundColor: colors.border }]}>
-              <IconSymbol name="sparkles" size={16} color="#7C3AED" />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <Zap size={20} color="#22C55E" />
+              <View>
+                <Text style={{ color: colors.text, fontWeight: "600", fontSize: 14 }}>Minhas Medidas</Text>
+                <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
+                  Peso, cintura, quadril, abdômen
+                </Text>
+              </View>
             </View>
-            <Text style={[styles.actionLabel, { color: colors.foreground }]}>
-              Descobrir novos programas
-            </Text>
-            <IconSymbol name="chevron.right" size={16} color={colors.muted} />
+            <IconSymbol name="chevron.right" size={24} color={colors.primary} />
+          </Pressable>
+        </SettingSection>
+
+        {/* Informações */}
+        <SettingSection title="Informações" colors={colors}>
+          <View style={{ gap: 8 }}>
+            <View
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 12,
+                padding: 12,
+              }}
+            >
+              <Text style={{ color: colors.muted, fontSize: 12 }}>Versão do App</Text>
+              <Text style={{ color: colors.text, fontWeight: "600", fontSize: 14, marginTop: 4 }}>1.0.0</Text>
+            </View>
+            <View
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 12,
+                padding: 12,
+              }}
+            >
+              <Text style={{ color: colors.muted, fontSize: 12 }}>E-mail Registrado</Text>
+              <Text style={{ color: colors.text, fontWeight: "600", fontSize: 14, marginTop: 4 }}>
+                {user?.email}
+              </Text>
+            </View>
+          </View>
+        </SettingSection>
+
+        {/* Sair */}
+        <View style={{ paddingHorizontal: 16, marginTop: 24, marginBottom: 40 }}>
+          <Pressable onPress={handleLogout}>
+            <LinearGradient
+              colors={["#EF4444", "#DC2626"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                borderRadius: 12,
+                paddingVertical: 12,
+                alignItems: "center",
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              <LogOut size={20} color="white" />
+              <Text style={{ color: "white", fontSize: 16, fontWeight: "bold" }}>Sair</Text>
+            </LinearGradient>
           </Pressable>
         </View>
-
-        {/* Support */}
-        <View style={[styles.section, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
-          <Text style={[styles.sectionLabel, { color: colors.muted }]}>SUPORTE</Text>
-          <Pressable
-            onPress={handleRestartOnboarding}
-            style={({ pressed }) => [styles.actionRow, { opacity: pressed ? 0.7 : 1 }]}
-          >
-            <View style={[styles.actionIcon, { backgroundColor: colors.border }]}>
-              <IconSymbol name="arrow.clockwise" size={16} color={colors.primary} />
-            </View>
-            <Text style={[styles.actionLabel, { color: colors.foreground }]}>
-              Refazer questionário inicial
-            </Text>
-            <IconSymbol name="chevron.right" size={16} color={colors.muted} />
-          </Pressable>
-        </View>
-
-        {/* Danger Zone */}
-        <View style={[styles.section, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
-          <Text style={[styles.sectionLabel, { color: colors.muted }]}>ZONA DE PERIGO</Text>
-          <Pressable
-            onPress={handleReset}
-            style={({ pressed }) => [styles.actionRow, { opacity: pressed ? 0.7 : 1 }]}
-          >
-            <View style={[styles.actionIcon, { backgroundColor: "#EF444422" }]}>
-              <IconSymbol name="trash.fill" size={16} color={colors.error} />
-            </View>
-            <Text style={[styles.actionLabel, { color: colors.error }]}>
-              Resetar todo o progresso
-            </Text>
-            <IconSymbol name="chevron.right" size={16} color={colors.error} />
-          </Pressable>
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: colors.muted }]}>
-            BARRIGAFIT · Desafio de 21 Dias
-          </Text>
-          <Text style={[styles.footerVersion, { color: colors.muted }]}>Versão 1.0.0</Text>
-        </View>
-
-        <View style={{ height: 24 }} />
       </ScrollView>
-    </ScreenContainer>
+
+      {/* Edit Profile Modal */}
+      <Modal visible={editingProfile} animationType="slide" transparent>
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.8)", justifyContent: "flex-end" }}>
+          <View
+            style={{
+              backgroundColor: colors.background,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              paddingHorizontal: 16,
+              paddingVertical: 20,
+              paddingBottom: 40,
+            }}
+          >
+            <Text style={{ fontSize: 20, fontWeight: "bold", color: colors.text, marginBottom: 16 }}>
+              Editar Perfil
+            </Text>
+
+            <View style={{ gap: 12, marginBottom: 16 }}>
+              <View>
+                <Text style={{ color: colors.text, fontWeight: "600", marginBottom: 6, fontSize: 14 }}>Nome</Text>
+                <TextInput
+                  style={{
+                    backgroundColor: colors.surface,
+                    borderRadius: 12,
+                    paddingHorizontal: 12,
+                    paddingVertical: 12,
+                    color: colors.text,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                  placeholder="Seu nome"
+                  placeholderTextColor={colors.muted}
+                  value={editName}
+                  onChangeText={setEditName}
+                />
+              </View>
+
+              <View>
+                <Text style={{ color: colors.text, fontWeight: "600", marginBottom: 6, fontSize: 14 }}>Objetivo</Text>
+                <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+                  {["emagrecer", "tonificar", "postura", "condicionamento"].map((g) => (
+                    <Pressable
+                      key={g}
+                      onPress={() => setEditGoal(g)}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 8,
+                        borderRadius: 8,
+                        backgroundColor: editGoal === g ? "#E91E8C" : colors.surface,
+                        borderWidth: 1,
+                        borderColor: editGoal === g ? "#E91E8C" : colors.border,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: editGoal === g ? "white" : colors.text,
+                          fontWeight: "600",
+                          fontSize: 12,
+                        }}
+                      >
+                        {g === "emagrecer"
+                          ? "Emagrecer"
+                          : g === "tonificar"
+                            ? "Tonificar"
+                            : g === "postura"
+                              ? "Postura"
+                              : "Condicionamento"}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
+              <View>
+                <Text style={{ color: colors.text, fontWeight: "600", marginBottom: 6, fontSize: 14 }}>Nível</Text>
+                <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+                  {["iniciante", "intermediário", "avançado"].map((l) => (
+                    <Pressable
+                      key={l}
+                      onPress={() => setEditLevel(l)}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 8,
+                        borderRadius: 8,
+                        backgroundColor: editLevel === l ? "#E91E8C" : colors.surface,
+                        borderWidth: 1,
+                        borderColor: editLevel === l ? "#E91E8C" : colors.border,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: editLevel === l ? "white" : colors.text,
+                          fontWeight: "600",
+                          fontSize: 12,
+                        }}
+                      >
+                        {l === "iniciante"
+                          ? "Iniciante"
+                          : l === "intermediário"
+                            ? "Intermediário"
+                            : "Avançado"}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            </View>
+
+            <Pressable onPress={handleSaveProfile} disabled={loading} style={{ marginBottom: 8 }}>
+              <LinearGradient
+                colors={["#C2185B", "#E91E8C"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ borderRadius: 12, paddingVertical: 14, alignItems: "center" }}
+              >
+                {loading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={{ color: "white", fontSize: 16, fontWeight: "bold" }}>Salvar</Text>
+                )}
+              </LinearGradient>
+            </Pressable>
+
+            <Pressable onPress={() => setEditingProfile(false)}>
+              <Text style={{ color: colors.muted, textAlign: "center", fontSize: 14 }}>Cancelar</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 }
 
-function SettingRow({
-  icon,
-  label,
-  value,
-  colors,
-  isLast,
-}: {
-  icon: any;
-  label: string;
-  value: string;
-  colors: any;
-  isLast?: boolean;
-}) {
+function SettingSection({ title, colors, children }: { title: string; colors: any; children: React.ReactNode }) {
   return (
-    <View
-      style={[
-        styles.settingRow,
-        !isLast && { borderBottomWidth: 0.5, borderBottomColor: colors.border },
-      ]}
-    >
-      <View style={[styles.actionIcon, { backgroundColor: colors.border }]}>
-        <IconSymbol name={icon} size={16} color={colors.primary} />
-      </View>
-      <Text style={[styles.settingLabel, { color: colors.muted }]}>{label}</Text>
-      <Text style={[styles.settingValue, { color: colors.foreground }]}>{value}</Text>
+    <View style={{ paddingHorizontal: 16, marginBottom: 20 }}>
+      <Text style={{ fontSize: 14, fontWeight: "bold", color: colors.muted, marginBottom: 12 }}>
+        {title}
+      </Text>
+      <View style={{ gap: 8 }}>{children}</View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  scrollContent: { paddingTop: 20 },
-  header: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "900",
-    letterSpacing: -0.5,
-  },
-  profileCard: {
-    marginHorizontal: 20,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
-    gap: 16,
-  },
-  profileAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  profileInfo: {
-    gap: 4,
-  },
-  profileName: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "800",
-    letterSpacing: -0.3,
-  },
-  profileGoal: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  profileStats: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 20,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.2)",
-  },
-  profileStat: {
-    alignItems: "center",
-    gap: 2,
-  },
-  profileStatValue: {
-    color: "#fff",
-    fontSize: 22,
-    fontWeight: "900",
-  },
-  profileStatLabel: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 11,
-    fontWeight: "500",
-  },
-  profileStatDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: "rgba(255,255,255,0.2)",
-  },
-  section: {
-    marginHorizontal: 20,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    marginBottom: 16,
-    gap: 12,
-  },
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1,
-  },
-  programRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  programDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  programInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  programTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  programMeta: {
-    fontSize: 12,
-    fontWeight: "400",
-  },
-  settingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-    gap: 12,
-  },
-  settingLabel: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  settingValue: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  switchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  switchLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  switchIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  switchLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  actionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 6,
-    gap: 12,
-  },
-  actionIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  actionLabel: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  footer: {
-    alignItems: "center",
-    paddingHorizontal: 20,
-    gap: 4,
-    marginTop: 8,
-  },
-  footerText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  footerVersion: {
-    fontSize: 11,
-    fontWeight: "400",
-  },
-});
