@@ -1,0 +1,48 @@
+{
+  "build_command": "pnpm run build",
+  "capabilities": [
+    "db",
+    "server",
+    "user"
+  ],
+  "dev_command": "pnpm run dev",
+  "env_vars": {
+    "DATABASE_URL": "mysql://3KCXeWfmTo7S2us.e7aef5626813:w3Z5J832vhbwEZQKAO3e@gateway04.us-east-1.prod.aws.tidbcloud.com:4000/Y6PpLKKLyWivwZ99hrkUZ5?ssl={\"rejectUnauthorized\":true}"
+  },
+  "experiments": [
+    "no_db_push"
+  ],
+  "git_remote": {
+    "repo_url": "s3://vida-prod-gitrepo/webdev-git/310519663393656224/Y6PpLKKLyWivwZ99hrkUZ5",
+    "access_key_id": "ASIAZV3A2ECZHL5HZZDP",
+    "secret_access_key": "pKWtDq371ICoNrP3zYrt+Wv0MZcOrHahtF0MdAF0",
+    "session_token": "IQoJb3JpZ2luX2VjEN///////////wEaCXVzLWVhc3QtMSJHMEUCIBmR9XkvwXvUbmChRxVjwpO8sgUJZ/QF0szN+obE1XSEAiEAj4vUwDEANOCevpeNaHuUXuFScLsMQs0+GcKruDvA9pAq/wMIqP//////////ARAEGgw2NjUzODYwOTg4NjYiDPKQ1uidgxE9OqUi9irTA06HmAlbaN+xfeI0EquxFxpBgKzIJaVUGEfd99bXScTAaGKO1JvLDKOELwCDRV4wubz3lTTaKjNbzVcLPr7x8loveCh2IMVSezDRtxkqKxxr2FYVt54jOacq+m7Oe4BVsQmkB3NnxY+xut81lIvrgmConc3pVXZ/V4DPgSM7G0ublhISZ9if0xROikDzYM1qd9vRRXjfxMWVBErlnGVXp+y3iNh4d1yeLrvHDiey74QVMJKcBC/UUSzK69S6qyDAsUuRKREJR3kOqYjjFLj3lI/5Oct6zrb/AstCj5jMmQBqJugH0+qI8pVV0Se7NhcBFaMr7Of0jw5qzZOttZuCbKKm9PqjVJ6if4ylUvNyoUtOzVcylgRbdjXOieABK/fyuu8NAoPnXu1nXhrzocUHAwgaYdBkNYg+duZZv1Xzakpx412VzkuXPs7f0C5rd7MyNvRpeFfEKqhSBqVUPn8I3KI8Vh/tYiziBnftbc8TZf1Sor/KQTPMXKlPfMxhO/47Nmc14l/QExkEeNo60w06DI5npavhhB7iZ+i2CjJ5ZCF6WHfLc7HMbg1iSCnUN0O7f7oSTj+9dcyAjZEtXAFM24issMA9JLcBl5wKnaC0pXbpOLmIMODPodQGOp0BCTlB7a14q0gbMEy+bYy5yP60nt7jUjremp/ki4Lcn3BUwT18pyWOdjsyM7TVixnkOCmcJ3FLo1FT4YDDE8j1aqqMCDz66xGW7b1F31Q+vRZyEVvxHkiWH+EZHYg777sMdc+cYTR7LxLRp90+nALQcGoO5Lwr5OSxJPv0mhx8TRtxsNv8qKzzc3lisma9ktyDOujvMF6BjkuYWtEK9w==",
+    "expiration": "2026-08-22T02:59:44.000Z",
+    "backend": "GIT_BACKEND_S3"
+  },
+  "name": "barrigafit",
+  "path": "/home/ubuntu/barrigafit",
+  "port": 3000,
+  "secrets": {
+    "BUILT_IN_FORGE_API_KEY": "XUFKfVqytsrd29QFW4sBja",
+    "BUILT_IN_FORGE_API_URL": "https://forge.manus.ai",
+    "EXPO_APP_QR_URL": "exps://8081-i2ush37lf5uqsps5jv4hc-d5a1aac5.us4.manus.computer",
+    "EXPO_PACKAGER_PROXY_URL": "https://8081-i2ush37lf5uqsps5jv4hc-d5a1aac5.us4.manus.computer",
+    "EXPO_PUBLIC_API_BASE_URL": "https://3000-i2ush37lf5uqsps5jv4hc-d5a1aac5.us4.manus.computer",
+    "JWT_SECRET": "23Ap8DKpbrBP9J9nHmDD3m",
+    "OAUTH_SERVER_URL": "https://api.manus.im",
+    "OWNER_NAME": "Bruno Bondurant",
+    "OWNER_OPEN_ID": "KuN688NQkmByrmNJyuMUBB",
+    "REACT_NATIVE_PACKAGER_HOSTNAME": "8081-i2ush37lf5uqsps5jv4hc-d5a1aac5.us4.manus.computer",
+    "VITE_ANALYTICS_ENDPOINT": "https://manus-analytics.com",
+    "VITE_ANALYTICS_WEBSITE_ID": "31eec17c-386a-4790-bcbd-2d1b6b85491a",
+    "VITE_APP_ID": "Y6PpLKKLyWivwZ99hrkUZ5",
+    "VITE_APP_LOGO": "https://d2xsxph8kpxj0f.cloudfront.net/310519663393656224/Y6PpLKKLyWivwZ99hrkUZ5/barrigafit-icon-aRckw3QNbctzkB8PPMGGpj.png",
+    "VITE_APP_TITLE": "BARRIGAFIT - Desafio de 21 Dias",
+    "VITE_FRONTEND_FORGE_API_KEY": "VDiCWz3nCoYsjQ6whpERhK",
+    "VITE_FRONTEND_FORGE_API_URL": "https://forge.manus.ai",
+    "VITE_OAUTH_PORTAL_URL": "https://manus.im"
+  },
+  "template_id": "app",
+  "test_command": "pnpm test"
+}
