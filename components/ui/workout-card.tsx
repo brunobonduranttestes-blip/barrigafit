@@ -1,7 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, Text, View, StyleSheet } from "react-native";
 import { IconSymbol } from "./icon-symbol";
-import { ExerciseAnimation, getAnimationType } from "./exercise-animation";
 import { useColors } from "@/hooks/use-colors";
 import type { LibraryClass, Program } from "@/lib/mock-data";
 
@@ -101,12 +100,13 @@ export function ClassCard({ item, onPress, isFavorite, onToggleFavorite }: Class
         { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.85 : 1 },
       ]}
     >
-      <View style={[styles.classThumbnail, { backgroundColor: item.thumbnailColor + "18" }]}>
-        <ExerciseAnimation
-          type={getAnimationType(item.exercises[0]?.name ?? "")}
-          color={item.thumbnailColor}
-          size={100}
-        />
+      <LinearGradient
+        colors={[item.thumbnailColor, item.thumbnailColor + "88"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.classThumbnail}
+      >
+        <IconSymbol name="figure.run" size={36} color="rgba(255,255,255,0.85)" />
         <View style={styles.playButton}>
           <IconSymbol name="play.fill" size={16} color="#fff" />
         </View>
@@ -114,7 +114,7 @@ export function ClassCard({ item, onPress, isFavorite, onToggleFavorite }: Class
           <IconSymbol name="clock.fill" size={10} color="#fff" />
           <Text style={styles.durationText}>{item.duration} min</Text>
         </View>
-      </View>
+      </LinearGradient>
 
       <View style={[styles.classCardBody, { backgroundColor: colors.card }]}>
         <Text style={[styles.classTitle, { color: colors.foreground }]} numberOfLines={2}>

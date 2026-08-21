@@ -27,6 +27,10 @@ import {
   addProgressEntry,
   getFavoriteClasses,
   toggleFavoriteClass,
+  addMeasurement,
+  getMeasurements,
+  changeAdminPassword,
+  signInWithCode,
   resetAllData,
   type UserProfile,
   type ProgressEntry,
@@ -181,6 +185,36 @@ describe("Favorites", () => {
     expect(mockSet).toHaveBeenCalledWith(
       "barrigafit:favorite_classes",
       JSON.stringify([])
+    );
+  });
+});
+
+describe("Measurements", () => {
+  it("adds a measurement and keeps the history ordered", async () => {
+    mockGet.mockResolvedValue(JSON.stringify([]));
+    const measurement = { date: "2026-08-21T12:00:00.000Z", waist: 71, abdomen: 78 };
+    await addMeasurement(measurement);
+    expect(mockSet).toHaveBeenCalledWith("barrigafit:measurements", JSON.stringify([measurement]));
+  });
+
+  it("returns an empty measurement list by default", async () => {
+    expect(await getMeasurements()).toEqual([]);
+  });
+});
+
+describe("Local access", () => {
+  it("rejects a login with incomplete credentials", async () => {
+    const result = await signInWithCode("", "ana@example.com", "BARRIGA21");
+    expect(result.ok).toBe(false);
+  });
+
+  it("allows the temporary admin password to be changed once", async () => {
+    mockGet.mockResolvedValue(null);
+    const changed = await changeAdminPassword("BF-9X7K-2R4M", "NovaSenha8");
+    expect(changed).toBe(true);
+    expect(mockSet).toHaveBeenCalledWith(
+      "barrigafit:admin_settings",
+      JSON.stringify({ adminPassword: "NovaSenha8", changedOnce: true }),
     );
   });
 });

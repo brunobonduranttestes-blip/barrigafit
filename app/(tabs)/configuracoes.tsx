@@ -18,9 +18,13 @@ import {
   getUserProfile,
   getActiveProgramId,
   getCompletedDays,
+  getSession,
+  getReminderSettings,
+  logoutLocal,
   resetAllData,
   type UserProfile,
 } from "@/lib/storage";
+import { disableWorkoutReminder, scheduleWorkoutReminder } from "@/lib/reminders";
 import { PROGRAMS } from "@/lib/mock-data";
 import { useColors } from "@/hooks/use-colors";
 
@@ -42,7 +46,9 @@ export default function ConfiguracoesScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [activeProgram, setActiveProgram] = useState<typeof PROGRAMS[0] | null>(null);
   const [completedDays, setCompletedDays] = useState<string[]>([]);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [reminderTime, setReminderTime] = useState({ hour: 19, minute: 0 });
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -58,6 +64,11 @@ export default function ConfiguracoesScreen() {
     setCompletedDays(days);
     const prog = PROGRAMS.find((p) => p.id === programId);
     setActiveProgram(prog || null);
+    const session = await getSession();
+    setIsAdmin(session?.role === "admin");
+    const reminder = await getReminderSettings();
+    setNotificationsEnabled(reminder.enabled);
+    setReminderTime({ hour: reminder.hour, minute: reminder.minute });
   };
 
   const handleReset = () => {
@@ -120,6 +131,9 @@ export default function ConfiguracoesScreen() {
               {profile?.goal ? GOAL_LABELS[profile.goal] || profile.goal : "Meta não definida"}
             </Text>
           </View>
+          <Pressable onPress={() => router.push("/perfil" as any)} style={styles.editProfileButton}>
+            <IconSymbol name="pencil" size={16} color="#E91E8C" />
+          </Pressable>
           <View style={styles.profileStats}>
             <View style={styles.profileStat}>
               <Text style={styles.profileStatValue}>{completedDays.length}</Text>
@@ -181,6 +195,26 @@ export default function ConfiguracoesScreen() {
           </View>
         )}
 
+        <View style={[styles.section, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
+          <Text style={[styles.sectionLabel, { color: colors.muted }]}>ACOMPANHAMENTO</Text>
+          <Pressable onPress={() => router.push("/medidas" as any)} style={styles.actionRow}>
+            <View style={[styles.actionIcon, { backgroundColor: colors.border }]}>
+              <IconSymbol name="chart.bar.fill" size={16} color={colors.primary} />
+            </View>
+            <Text style={[styles.actionLabel, { color: colors.foreground }]}>Medidas corporais</Text>
+            <IconSymbol name="chevron.right" size={16} color={colors.muted} />
+          </Pressable>
+          {isAdmin && (
+            <Pressable onPress={() => router.push("/admin" as any)} style={[styles.actionRow, { borderTopWidth: 0.5, borderTopColor: colors.border }]}>
+              <View style={[styles.actionIcon, { backgroundColor: colors.border }]}>
+                <IconSymbol name="shield.fill" size={16} color={colors.primary} />
+              </View>
+              <Text style={[styles.actionLabel, { color: colors.foreground }]}>Painel administrativo</Text>
+              <IconSymbol name="chevron.right" size={16} color={colors.muted} />
+            </Pressable>
+          )}
+        </View>
+
         {/* Preferences */}
         <View style={[styles.section, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
           <Text style={[styles.sectionLabel, { color: colors.muted }]}>PREFERÊNCIAS</Text>
@@ -195,14 +229,32 @@ export default function ConfiguracoesScreen() {
             </View>
             <Switch
               value={notificationsEnabled}
-              onValueChange={(v) => {
+              onValueChange={async (v) => {
                 if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setNotificationsEnabled(v);
+                try {
+                  if (v) await scheduleWorkoutReminder(reminderTime.hour, reminderTime.minute);
+                  else await disableWorkoutReminder(reminderTime.hour, reminderTime.minute);
+                } catch {
+                  setNotificationsEnabled(false);
+                  Alert.alert("Permissão necessária", "Autorize as notificações do BARRIGAFIT para ativar os lembretes.");
+                }
               }}
               trackColor={{ false: colors.border, true: colors.primary }}
               thumbColor="#fff"
             />
           </View>
+          <Pressable onPress={async () => {
+            const hours = [7, 12, 18, 19, 20];
+            const nextHour = hours[(hours.indexOf(reminderTime.hour) + 1) % hours.length];
+            const next = { hour: nextHour, minute: 0 };
+            setReminderTime(next);
+            if (notificationsEnabled) await scheduleWorkoutReminder(next.hour, next.minute);
+          }} style={[styles.actionRow, { borderTopWidth: 0.5, borderTopColor: colors.border }]}> 
+            <View style={[styles.actionIcon, { backgroundColor: colors.border }]}><IconSymbol name="clock.fill" size={16} color={colors.primary} /></View>
+            <Text style={[styles.actionLabel, { color: colors.foreground }]}>Horário do lembrete</Text>
+            <Text style={[styles.settingValue, { color: colors.foreground }]}>{String(reminderTime.hour).padStart(2, "0")}:00</Text>
+          </Pressable>
         </View>
 
         {/* Programs */}
@@ -247,6 +299,13 @@ export default function ConfiguracoesScreen() {
             <Text style={[styles.actionLabel, { color: colors.foreground }]}>
               Refazer questionário inicial
             </Text>
+            <IconSymbol name="chevron.right" size={16} color={colors.muted} />
+          </Pressable>
+          <Pressable onPress={async () => { await logoutLocal(); router.replace("/login" as any); }} style={[styles.actionRow, { borderTopWidth: 0.5, borderTopColor: colors.border }]}>
+            <View style={[styles.actionIcon, { backgroundColor: colors.border }]}>
+              <IconSymbol name="xmark" size={16} color={colors.muted} />
+            </View>
+            <Text style={[styles.actionLabel, { color: colors.foreground }]}>Sair da conta</Text>
             <IconSymbol name="chevron.right" size={16} color={colors.muted} />
           </Pressable>
         </View>
@@ -340,6 +399,17 @@ const styles = StyleSheet.create({
   },
   profileInfo: {
     gap: 4,
+  },
+  editProfileButton: {
+    position: "absolute",
+    top: 20,
+    right: 20,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
   },
   profileName: {
     color: "#fff",

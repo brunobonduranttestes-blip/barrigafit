@@ -12,8 +12,8 @@ function TabIcon({ name, label, focused, color }: {
   color: string;
 }) {
   return (
-    <View style={styles.tabItem}>
-      <IconSymbol name={name} size={22} color={color} />
+    <View style={[styles.tabItem, focused && styles.tabItemActive]}>
+      <IconSymbol name={name} size={21} color={color} />
       <Text style={[styles.tabLabel, { color }]}>{label}</Text>
     </View>
   );
@@ -22,8 +22,8 @@ function TabIcon({ name, label, focused, color }: {
 export default function TabLayout() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const bottomPadding = Platform.OS === "web" ? 12 : Math.max(insets.bottom, 8);
-  const tabBarHeight = 64 + bottomPadding;
+  const bottomPadding = Platform.OS === "web" ? 10 : Math.max(insets.bottom, 8);
+  const tabBarHeight = 62 + bottomPadding;
 
   return (
     <Tabs
@@ -34,10 +34,10 @@ export default function TabLayout() {
         tabBarButton: HapticTab,
         tabBarShowLabel: false,
         tabBarStyle: {
-          paddingTop: 8,
+          paddingTop: 6,
           paddingBottom: bottomPadding,
           height: tabBarHeight,
-          backgroundColor: colors.surface,
+          backgroundColor: colors.background,
           borderTopColor: colors.border,
           borderTopWidth: 0.5,
         },
@@ -96,12 +96,14 @@ const styles = StyleSheet.create({
   tabItem: {
     alignItems: "center",
     justifyContent: "center",
-    gap: 3,
-    paddingTop: 2,
+    gap: 2,
+    minWidth: 54,
+    paddingVertical: 2,
   },
+  tabItemActive: { transform: [{ translateY: -1 }] },
   tabLabel: {
-    fontSize: 10,
-    fontWeight: "600",
-    letterSpacing: 0.2,
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 0,
   },
 });

@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
+import "@/lib/reminders";
 import { Platform } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
@@ -87,6 +88,8 @@ export default function RootLayout() {
           {/* in order for ios apps tab switching to work properly, use presentation: "fullScreenModal" for login page, whenever you decide to use presentation: "modal*/}
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" options={{ animation: "fade" }} />
+            <Stack.Screen name="login" options={{ animation: "fade" }} />
+            <Stack.Screen name="perfil" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="onboarding" options={{ animation: "fade" }} />
             <Stack.Screen name="chat-ia" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="(tabs)" />
@@ -102,6 +105,8 @@ export default function RootLayout() {
               name="descobrir"
               options={{ presentation: "modal", animation: "slide_from_bottom" }}
             />
+            <Stack.Screen name="medidas" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="admin" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="oauth/callback" />
           </Stack>
           <StatusBar style="light" />

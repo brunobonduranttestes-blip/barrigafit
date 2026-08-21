@@ -18,7 +18,6 @@ import { ScreenContainer } from "@/components/screen-container";
 import { markDayComplete, addProgressEntry, isDayComplete } from "@/lib/storage";
 import { PROGRAMS, LIBRARY_CLASSES, type Exercise, type WorkoutDay } from "@/lib/mock-data";
 import { useColors } from "@/hooks/use-colors";
-import { ExerciseAnimation, getAnimationType } from "@/components/ui/exercise-animation";
 
 export default function AulaScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -29,10 +28,13 @@ export default function AulaScreen() {
   const [programId, setProgramId] = useState<string | null>(null);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [isStarted, setIsStarted] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [alreadyDone, setAlreadyDone] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [exerciseTimer, setExerciseTimer] = useState(0);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [pendingExerciseIndex, setPendingExerciseIndex] = useState<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const exerciseTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -77,13 +79,29 @@ export default function AulaScreen() {
 
   const startWorkout = () => {
     setIsStarted(true);
-    setExerciseTimer(workout?.exercises[0]?.duration || 30);
+    setIsPaused(false);
+    setPendingExerciseIndex(0);
+    setCountdown(3);
+  };
 
-    timerRef.current = setInterval(() => {
-      setElapsedSeconds((s) => s + 1);
-    }, 1000);
+  useEffect(() => {
+    if (!isStarted || isPaused || countdown === null) return;
+    if (countdown === 0) {
+      const nextIndex = pendingExerciseIndex ?? currentExerciseIndex;
+      setCurrentExerciseIndex(nextIndex);
+      setPendingExerciseIndex(null);
+      setCountdown(null);
+      startTimers(workout?.exercises[nextIndex]?.duration || 30);
+      return;
+    }
+    const timeout = setTimeout(() => setCountdown((value) => (value === null ? null : value - 1)), 1000);
+    return () => clearTimeout(timeout);
+  }, [countdown, currentExerciseIndex, isPaused, isStarted, pendingExerciseIndex, workout]);
 
-    startExerciseTimer(workout?.exercises[0]?.duration || 30);
+  const startTimers = (duration: number) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => setElapsedSeconds((seconds) => seconds + 1), 1000);
+    startExerciseTimer(duration);
   };
 
   const startExerciseTimer = (duration: number) => {
@@ -93,6 +111,7 @@ export default function AulaScreen() {
       setExerciseTimer((t) => {
         if (t <= 1) {
           clearInterval(exerciseTimerRef.current!);
+          setTimeout(() => handleNextExercise(), 350);
           return 0;
         }
         return t - 1;
@@ -108,9 +127,22 @@ export default function AulaScreen() {
     if (nextIndex >= workout.exercises.length) {
       handleComplete();
     } else {
-      setCurrentExerciseIndex(nextIndex);
-      startExerciseTimer(workout.exercises[nextIndex].duration);
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (exerciseTimerRef.current) clearInterval(exerciseTimerRef.current);
+      setPendingExerciseIndex(nextIndex);
+      setCountdown(3);
     }
+  };
+
+  const togglePause = () => {
+    if (isPaused) {
+      setIsPaused(false);
+      if (countdown === null) startTimers(exerciseTimer || currentExercise?.duration || 30);
+      return;
+    }
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (exerciseTimerRef.current) clearInterval(exerciseTimerRef.current);
+    setIsPaused(true);
   };
 
   const handleComplete = async () => {
@@ -325,22 +357,27 @@ export default function AulaScreen() {
       >
         {currentExercise && (
           <>
-            {/* Exercise Visual - Animated */}
-            <View style={[styles.exerciseVisual, { backgroundColor: currentExercise.thumbnailColor + "18" }]}>
-              <ExerciseAnimation
-                type={getAnimationType(currentExercise.name)}
-                color={currentExercise.thumbnailColor}
-                size={220}
-              />
-
+            <LinearGradient
+              colors={[currentExercise.thumbnailColor, currentExercise.thumbnailColor + "88"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.exerciseVisual}
+            >
+              <IconSymbol name="figure.run" size={64} color="rgba(255,255,255,0.9)" />
               {/* Timer Circle */}
               <View style={styles.exerciseTimerContainer}>
-                <View style={[styles.exerciseTimerCircle, { borderColor: currentExercise.thumbnailColor + "66" }]}>
-                  <Text style={[styles.exerciseTimerValue, { color: currentExercise.thumbnailColor }]}>{exerciseTimer}</Text>
+                <View style={styles.exerciseTimerCircle}>
+                  <Text style={styles.exerciseTimerValue}>{exerciseTimer}</Text>
                   <Text style={styles.exerciseTimerLabel}>seg</Text>
                 </View>
               </View>
-            </View>
+              {countdown !== null && (
+                <View style={styles.countdownOverlay}>
+                  <Text style={styles.countdownEyebrow}>{pendingExerciseIndex === 0 ? "PREPARE-SE" : "PRÓXIMO EXERCÍCIO"}</Text>
+                  <Text style={styles.countdownNumber}>{countdown === 0 ? "VAI" : countdown}</Text>
+                </View>
+              )}
+            </LinearGradient>
 
             {/* Exercise Info */}
             <View style={styles.exerciseInfo}>
@@ -376,6 +413,11 @@ export default function AulaScreen() {
               <Text style={[styles.exerciseDescription, { color: colors.muted }]}>
                 {currentExercise.description}
               </Text>
+
+              <Pressable onPress={togglePause} style={[styles.pauseButton, { backgroundColor: isPaused ? colors.primary : colors.surfaceAlt, borderColor: isPaused ? colors.primary : colors.border }]}>
+                <IconSymbol name={isPaused ? "play.fill" : "pause.fill"} size={20} color={isPaused ? "#fff" : colors.foreground} />
+                <Text style={[styles.pauseText, { color: isPaused ? "#fff" : colors.foreground }]}>{isPaused ? "Retomar exercício" : "Pausar exercício"}</Text>
+              </Pressable>
 
               {/* Breathing Guide */}
               <View style={[styles.breathingCard, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
@@ -684,6 +726,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.3)",
   },
   exerciseTimerValue: {
     color: "#fff",
@@ -696,6 +739,21 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "600",
   },
+  countdownOverlay: {
+    position: "absolute",
+    inset: 0,
+    backgroundColor: "rgba(5,5,5,0.78)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  countdownEyebrow: {
+    color: "rgba(255,255,255,0.75)",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 2,
+    marginBottom: 4,
+  },
+  countdownNumber: { color: "#fff", fontSize: 78, fontWeight: "900", lineHeight: 88 },
   exerciseInfo: {
     padding: 20,
     gap: 16,
@@ -726,6 +784,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
   },
+  pauseButton: {
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  pauseText: { fontSize: 14, fontWeight: "800" },
   breathingCard: {
     flexDirection: "row",
     alignItems: "flex-start",

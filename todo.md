@@ -41,3 +41,16 @@
 - [x] Integrar animações nos cards da Biblioteca (ClassCard)
 - [x] Mapear cada exercício a uma animação correspondente
 - [x] Testes passando (41 testes)
+
+## Atualização v2
+- [x] Reverter as ilustrações animadas SVG e restaurar placeholders de gradiente
+- [x] Criar autenticação local por nome, e-mail e código de acesso
+- [x] Permitir edição persistente do perfil da usuária
+- [x] Criar painel administrativo para usuários, códigos de acesso e catálogo de vídeos
+- [x] Adicionar transição com contagem regressiva entre exercícios
+- [x] Adicionar controles de iniciar e pausar a sessão de exercício
+- [x] Implementar lembretes locais no horário preferido da usuária
+- [x] Criar registro de medidas corporais e gráfico de evolução de 21 dias
+- [x] Corrigir o rótulo de domingo na tela de progresso
+- [x] Ajustar barra inferior, ícones, espaçamentos e hierarquia tipográfica
+- [x] Testar a atualização completa e salvar checkpoint

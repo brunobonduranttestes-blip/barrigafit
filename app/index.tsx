@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
-import { isOnboardingDone, isChatDone } from "@/lib/storage";
+import { getSession, isOnboardingDone, isChatDone } from "@/lib/storage";
 import { useColors } from "@/hooks/use-colors";
 
 export default function EntryScreen() {
@@ -9,10 +9,13 @@ export default function EntryScreen() {
 
   useEffect(() => {
     async function checkFlow() {
+      const session = await getSession();
       const onboarded = await isOnboardingDone();
       const chatted = await isChatDone();
 
-      if (!onboarded) {
+      if (!session) {
+        router.replace("/login");
+      } else if (!onboarded) {
         router.replace("/onboarding");
       } else if (!chatted) {
         router.replace("/chat-ia");

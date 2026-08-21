@@ -20,6 +20,7 @@ import { PROGRAMS } from "@/lib/mock-data";
 import { useColors } from "@/hooks/use-colors";
 
 const WEEK_DAYS = ["D", "S", "T", "Q", "Q", "S", "S"];
+const localDateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
 export default function ProgressoScreen() {
   const colors = useColors();
@@ -28,6 +29,7 @@ export default function ProgressoScreen() {
   const [activeProgram, setActiveProgram] = useState<typeof PROGRAMS[0] | null>(null);
   const [totalMinutes, setTotalMinutes] = useState(0);
   const [weekActivity, setWeekActivity] = useState<boolean[]>(Array(7).fill(false));
+  const [weekLabels, setWeekLabels] = useState<string[]>(Array(7).fill(""));
 
   useFocusEffect(
     useCallback(() => {
@@ -52,13 +54,16 @@ export default function ProgressoScreen() {
     // Build week activity (last 7 days)
     const today = new Date();
     const activity = Array(7).fill(false);
+    const labels: string[] = [];
     for (let i = 0; i < 7; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() - (6 - i));
-      const dateStr = d.toISOString().split("T")[0];
+      const dateStr = localDateKey(d);
       activity[i] = hist.some((e: ProgressEntry) => e.date.startsWith(dateStr));
+      labels.push(WEEK_DAYS[d.getDay()]);
     }
     setWeekActivity(activity);
+    setWeekLabels(labels);
   };
 
   const progress = activeProgram
@@ -71,7 +76,7 @@ export default function ProgressoScreen() {
     for (let i = 0; i < 30; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
-      const dateStr = d.toISOString().split("T")[0];
+      const dateStr = localDateKey(d);
       if (history.some((e) => e.date.startsWith(dateStr))) {
         count++;
       } else {
@@ -141,7 +146,7 @@ export default function ProgressoScreen() {
         <View style={[styles.card, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>Atividade Semanal</Text>
           <View style={styles.weekRow}>
-            {WEEK_DAYS.map((day, i) => (
+            {weekLabels.map((day, i) => (
               <View key={i} style={styles.weekDayCol}>
                 <View
                   style={[
