@@ -54,3 +54,8 @@
 - [x] Corrigir o rótulo de domingo na tela de progresso
 - [x] Ajustar barra inferior, ícones, espaçamentos e hierarquia tipográfica
 - [x] Testar a atualização completa e salvar checkpoint
+
+## Pacote de reconstrução
+- [x] Inventariar dados, telas, fluxos e design system atuais
+- [x] Escrever especificação para recriar no Lovable e no Manus
+- [x] Gerar pacote baixável com a especificação e ativos essenciais
